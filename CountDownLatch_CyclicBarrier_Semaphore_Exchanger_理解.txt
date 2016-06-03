@@ -1,0 +1,34 @@
+1、CountDownLatch:
+描述：一批游客们要进游乐场，所有人都到齐了才能进入，有且仅有这么一次入园的机会。
+	1、构造一扇有N个钥匙插口的大门
+	2、每到一位游客插入（countDown）一把钥匙，钥匙都插满后大门打开，否则大伙都等在（await）门外。
+	3、查看（getCount）还有几个空插口的方法，不过该方法并没有加锁，可能会脏读。
+	
+2、CyclicBarrier
+描述：游客们要进游乐场，N位游客都到齐了才能进入，但可以有好多批次（每批N位）入园的机会。
+	1、构造一扇必需所有人都到齐后才开的大门。
+	2、每到一位游客便主动等着（await），所有人都到齐后大门打开，否则大伙都等在门外。
+	3、查看已经有多少人在等待的方法（getNumberWaiting），也会脏读。
+	就上述功能，CyclicBarrier和CountDownLatch是一样的。
+	
+不同的地方是：
+	1、它是可循环的（Cyclic）。当N位游客都到齐后，开园放行，但是大门又关上了，新启一轮（nextGeneration）到齐才开放的活动。
+	2、可回调。构造的大门时允许绑一个铃（构造函数里可传入一个Runnable对象），所有人到齐后可以扯铃得瑟一下（调用Runnable.run）
+	3、它可以重置（reset）。就算已经有3位游客到了，调用重置后，可以把这3位等待着的游客赶走。而正他们便不开心了，会抛出BrokenBarrierException异常
+	4、重置（breakBarrier），并新新启一轮（nextGeneration）。可查看是否重置过（isBroken）。
+	
+3、Semaphore
+描述：游乐场骑木马，一共N匹马，骑一匹少一匹，下一匹多一匹可被骑的马。（就不打厕所蹲坑的比喻了）！
+	有两种排队方式：
+		一种就是公平（FairSync）排队，先进先出。
+		另一种不公平（NonfairSync）的争抢式，谁先抢到空马就谁骑。
+	1、请求上马（acquire/acquireUninterruptibly），如果有空马则上，如果没空马，则进入排队，并一直询问（for(;;)）是否有空马。
+		当队列里有空马时，公平队就把名额给排头者，其它人接着循环。争抢队就看谁先骑上马了。
+		有两种队列，也有两种排队的人
+			一种是只想骑木马（acquireUninterruptibly，acquireShared），有更好玩的也不去（不响应中断）
+			另一种是（acquire，acquireSharedInterruptibly）如果有更好玩的可能就不排这队了（响应中断，抛出InterruptedException异常）
+	
+	2、下马。（release）
+	3、查看有多少空马（availablePermits）
+	4、所有空着的马都变成不可骑的（drainPermits，status=0），但是骑马活动还没结束，因为正在被骑着的木马还是有用的（下马release，又会空出可骑的木马）
+	
